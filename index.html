@@ -13,13 +13,16 @@
   <h2>Stretchfolie controle tool</h2>
 
   <label for="totaalGewicht">Totaal gewicht van de rol (g):</label>
-  <input type="number" id="totaalGewicht" placeholder="Bijv. 2977">
+  <input type="number" id="totaalGewicht" placeholder="Bijv. 2980">
 
   <label for="kokerGewicht">Gewicht van de koker (g):</label>
-  <input type="number" id="kokerGewicht" placeholder="Bijv. 227">
+  <input type="number" id="kokerGewicht" placeholder="Bijv. 230">
 
   <label for="lengte">Lengte folie op de rol (meter):</label>
   <input type="number" id="lengte" placeholder="Bijv. 300">
+
+  <label for="breedte">Breedte van de folie (cm):</label>
+  <input type="number" id="breedte" placeholder="Bijv. 50">
 
   <label for="dikte">Dikte van de folie (micron / my):</label>
   <input type="number" id="dikte" placeholder="Bijv. 20">
@@ -34,14 +37,15 @@
       const koker = parseFloat(document.getElementById('kokerGewicht').value);
       const lengte = parseFloat(document.getElementById('lengte').value);
       const dikte = parseFloat(document.getElementById('dikte').value);
+      const breedte = parseFloat(document.getElementById('breedte').value);
 
-      if (isNaN(totaal) || isNaN(koker) || isNaN(lengte) || isNaN(dikte)) {
+      if (isNaN(totaal) || isNaN(koker) || isNaN(lengte) || isNaN(dikte) || isNaN(breedte)) {
         document.getElementById('output').innerHTML = "<strong>Vul alle velden correct in.</strong>";
         return;
       }
 
       const nettoFolie = totaal - koker;
-      const theoretischGewicht = (dikte / 1000) * 0.5 * lengte * 0.92 * 1000; // gram
+      const theoretischGewicht = (dikte / 1000) * (breedte / 100) * lengte * 0.92 * 1000; // gram
       const verschil = nettoFolie - theoretischGewicht;
       const verschilProcent = (verschil / theoretischGewicht) * 100;
 
@@ -51,7 +55,7 @@
 
       document.getElementById('output').innerHTML = `
         <strong>Netto foliegewicht:</strong> ${nettoFolie.toFixed(0)} g<br>
-        <strong>Theoretisch gewicht (bij ${dikte} my, ${lengte} m):</strong> ${theoretischGewicht.toFixed(0)} g<br>
+        <strong>Theoretisch gewicht (bij ${dikte} my, ${lengte} m, ${breedte} cm):</strong> ${theoretischGewicht.toFixed(0)} g<br>
         <strong>Verschil:</strong> ${verschil.toFixed(1)} g (${verschilProcent.toFixed(2)}%)<br>
         <strong>Conclusie:</strong> ${conclusie}
       `;
