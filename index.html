@@ -1,65 +1,88 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <title>Stretchfolie controle calculator</title>
-  <style>
-    body { font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; }
-    input, button { padding: 8px; margin-top: 10px; width: 100%; }
-    .resultaat { margin-top: 20px; background: #f4f4f4; padding: 15px; border-radius: 8px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stretchfolie controle calculator | VerpakkingenXL</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Open Sans", Arial, Helvetica, sans-serif; color: #333; margin: 0; padding: 16px; background: #fff; line-height: 1.5; font-size: 15px; }
+  h2 { margin: 0 0 4px; font-size: 20px; color: #0b99bc; }
+  .sub { margin: 0 0 14px; color: #666; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit; }
+  input:focus { outline: 2px solid #0b99bc; border-color: #0b99bc; }
+  .opt { font-weight: 400; color: #888; }
+  button { margin-top: 14px; width: 100%; padding: 12px; font-size: 16px; font-weight: 700; color: #fff; background: #0b99bc; border: 0; border-radius: 5px; cursor: pointer; font-family: inherit; }
+  button:hover { background: #09829f; }
+  #output { margin-top: 16px; }
+  .verdict { padding: 12px 15px; border-radius: 5px; font-weight: 700; font-size: 16px; margin-bottom: 12px; }
+  .ok { background: #eaf7fa; border-left: 5px solid #0b99bc; }
+  .warn { background: #fff6e5; border-left: 5px solid #d98a00; }
+  .rows { background: #f9f9f9; border-radius: 5px; padding: 6px 15px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e6e6e6; }
+  .row:last-child { border-bottom: 0; }
+  .row span:last-child { font-weight: 700; text-align: right; white-space: nowrap; }
+  .note { font-size: 13px; color: #666; margin: 10px 0 0; }
+</style>
 </head>
 <body>
-  <h2>Stretchfolie controle tool</h2>
+<h2>Stretchfolie controle calculator</h2>
+<p class="sub">Vul de gegevens van jouw rol in en zie direct of de dikte en lengte kloppen.</p>
 
-  <label for="totaalGewicht">Totaal gewicht van de rol (g):</label>
-  <input type="number" id="totaalGewicht" placeholder="Bijv. 2980">
+<div class="grid">
+  <div><label for="totaalGewicht">Totaalgewicht rol (g)</label><input type="number" inputmode="decimal" id="totaalGewicht" placeholder="Bijv. 2977"></div>
+  <div><label for="kokerGewicht">Gewicht lege koker (g)</label><input type="number" inputmode="decimal" id="kokerGewicht" placeholder="Bijv. 227"></div>
+  <div><label for="dikte">Opgegeven dikte (my)</label><input type="number" inputmode="decimal" id="dikte" placeholder="Bijv. 20"></div>
+  <div><label for="breedte">Breedte (cm)</label><input type="number" inputmode="decimal" id="breedte" placeholder="Bijv. 50"></div>
+  <div><label for="lengte">Opgegeven lengte (m)</label><input type="number" inputmode="decimal" id="lengte" placeholder="Bijv. 300"></div>
+  <div><label for="prijs">Prijs per rol (&euro;) <span class="opt">optioneel</span></label><input type="number" inputmode="decimal" step="0.01" id="prijs" placeholder="Bijv. 6,00"></div>
+</div>
+<button type="button" onclick="bereken()">Bereken</button>
+<div id="output" aria-live="polite"></div>
 
-  <label for="kokerGewicht">Gewicht van de koker (g):</label>
-  <input type="number" id="kokerGewicht" placeholder="Bijv. 230">
+<script>
+function num(id) { return parseFloat(String(document.getElementById(id).value).replace(',', '.')); }
+function nl(v, d) { return v.toLocaleString('nl-NL', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function row(a, b) { return '<div class="row"><span>' + a + '</span><span>' + b + '</span></div>'; }
 
-  <label for="lengte">Lengte folie op de rol (meter):</label>
-  <input type="number" id="lengte" placeholder="Bijv. 300">
+function bereken() {
+  var out = document.getElementById('output');
+  var totaal = num('totaalGewicht'), koker = num('kokerGewicht'), lengte = num('lengte'),
+      dikte = num('dikte'), breedte = num('breedte'), prijs = num('prijs');
 
-  <label for="breedte">Breedte van de folie (cm):</label>
-  <input type="number" id="breedte" placeholder="Bijv. 50">
+  if ([totaal, koker, lengte, dikte, breedte].some(function (v) { return isNaN(v) || v <= 0; }) || koker >= totaal) {
+    out.innerHTML = '<div class="verdict warn">Vul alle velden in. Het kokergewicht moet lager zijn dan het totaalgewicht.</div>';
+    return;
+  }
 
-  <label for="dikte">Dikte van de folie (micron / my):</label>
-  <input type="number" id="dikte" placeholder="Bijv. 20">
+  // LLDPE: 0,92 g/cm3 -> gram = my x cm x m x 0,0092
+  var netto = totaal - koker;
+  var verwacht = dikte * breedte * lengte * 0.0092;
+  var verschil = netto - verwacht;
+  var pct = verschil / verwacht * 100;
+  var echteLengte = netto / (dikte * breedte * 0.0092);
+  var echteDikte = netto / (breedte * lengte * 0.0092);
 
-  <button onclick="bereken()">Bereken</button>
+  var cls = 'ok', tekst = 'In orde: deze rol valt binnen de normale tolerantie van 5%.';
+  if (pct < -5) { cls = 'warn'; tekst = 'Let op: er zit ' + nl(Math.abs(pct), 1) + '% minder folie op de rol dan opgegeven.'; }
+  else if (pct > 5) { cls = 'warn'; tekst = 'Er zit meer folie op de rol dan opgegeven. Controleer het kokergewicht.'; }
 
-  <div id="output" class="resultaat"></div>
+  var html = '<div class="verdict ' + cls + '">' + tekst + '</div><div class="rows">' +
+    row('Netto foliegewicht', nl(netto, 0) + ' g') +
+    row('Verwacht bij ' + nl(dikte, 0) + ' my, ' + nl(breedte, 0) + ' cm x ' + nl(lengte, 0) + ' m', nl(verwacht, 0) + ' g') +
+    row('Verschil', (verschil > 0 ? '+' : '') + nl(verschil, 0) + ' g (' + (pct > 0 ? '+' : '') + nl(pct, 1) + '%)') +
+    row('Werkelijke lengte bij ' + nl(dikte, 0) + ' my', nl(echteLengte, 0) + ' m') +
+    row('Werkelijke dikte bij ' + nl(lengte, 0) + ' m', nl(echteDikte, 1) + ' my');
 
-  <script>
-    function bereken() {
-      const totaal = parseFloat(document.getElementById('totaalGewicht').value);
-      const koker = parseFloat(document.getElementById('kokerGewicht').value);
-      const lengte = parseFloat(document.getElementById('lengte').value);
-      const dikte = parseFloat(document.getElementById('dikte').value);
-      const breedte = parseFloat(document.getElementById('breedte').value);
-
-      if (isNaN(totaal) || isNaN(koker) || isNaN(lengte) || isNaN(dikte) || isNaN(breedte)) {
-        document.getElementById('output').innerHTML = "<strong>Vul alle velden correct in.</strong>";
-        return;
-      }
-
-      const nettoFolie = totaal - koker;
-      const theoretischGewicht = (dikte / 1000) * (breedte / 100) * lengte * 0.92 * 1000; // gram
-      const verschil = nettoFolie - theoretischGewicht;
-      const verschilProcent = (verschil / theoretischGewicht) * 100;
-
-      let conclusie = "Binnen de normale tolerantie.";
-      if (verschilProcent < -5) conclusie = "Let op: mogelijk te weinig folie.";
-      else if (verschilProcent > 5) conclusie = "Er lijkt meer folie op de rol dan opgegeven.";
-
-      document.getElementById('output').innerHTML = `
-        <strong>Netto foliegewicht:</strong> ${nettoFolie.toFixed(0)} g<br>
-        <strong>Theoretisch gewicht (bij ${dikte} my, ${lengte} m, ${breedte} cm):</strong> ${theoretischGewicht.toFixed(0)} g<br>
-        <strong>Verschil:</strong> ${verschil.toFixed(1)} g (${verschilProcent.toFixed(2)}%)<br>
-        <strong>Conclusie:</strong> ${conclusie}
-      `;
-    }
-  </script>
+  if (!isNaN(prijs) && prijs > 0) {
+    html += row('Prijs per kilo folie', '&euro; ' + nl(prijs / (netto / 1000), 2)) +
+            row('Prijs per 100 m (bij ' + nl(dikte, 0) + ' my)', '&euro; ' + nl(prijs / echteLengte * 100, 2));
+  }
+  html += '</div><p class="note">De weegschaal laat zien hoeveel folie je hebt, niet of een verschil in de dikte of in de lengte zit. Daarom zie je beide uitersten.</p>';
+  out.innerHTML = html;
+}
+</script>
 </body>
 </html>
